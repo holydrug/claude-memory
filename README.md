@@ -3,7 +3,7 @@
 Semantic memory MCP server for [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 Local knowledge graph with vector search — **zero external dependencies**.
 
-No Docker. No Ollama. No API keys. Just `npx` and go.
+Works out of the box with built-in embeddings. Power users can plug in [Ollama](#power-users-ollama) for higher-quality models.
 
 ## How it works
 
@@ -124,12 +124,71 @@ All configuration is via environment variables (all optional):
 | `CLAUDE_MEMORY_DIR` | `~/.cache/claude-memory` | Data directory |
 | `CLAUDE_MEMORY_DB` | `<dir>/memory.db` | SQLite database path |
 | `CLAUDE_MEMORY_MODEL_CACHE` | `<dir>/models` | Embedding model cache |
+| `EMBEDDING_PROVIDER` | `builtin` | `"builtin"` or `"ollama"` |
+| `EMBEDDING_DIM` | `384` / `768` | Embedding dimension (default depends on provider) |
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama API endpoint |
+| `OLLAMA_MODEL` | `nomic-embed-text` | Ollama embedding model name |
+
+## Power Users: Ollama
+
+If you have [Ollama](https://ollama.com) running locally, you can use higher-quality embedding models (nomic-embed-text 768-dim, mxbai-embed-large 1024-dim, etc.) instead of the built-in all-MiniLM-L6-v2.
+
+### Setup
+
+```bash
+# 1. Pull an embedding model
+ollama pull nomic-embed-text
+
+# 2. Configure Claude Code to use Ollama
+```
+
+In `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "semantic-memory": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "semantic-memory-mcp"],
+      "env": {
+        "EMBEDDING_PROVIDER": "ollama",
+        "OLLAMA_MODEL": "nomic-embed-text",
+        "EMBEDDING_DIM": "768"
+      }
+    }
+  }
+}
+```
+
+### Available models
+
+| Model | Dim | Notes |
+|-------|-----|-------|
+| `nomic-embed-text` | 768 | Good balance of quality and speed |
+| `mxbai-embed-large` | 1024 | Higher quality, slower |
+| `all-minilm` | 384 | Similar to builtin, useful for testing |
+
+Set `EMBEDDING_DIM` to match the model's output dimension. On first start, the dimension is saved in the database — if you switch models with a different dimension, you'll need a fresh database.
+
+### Dimension mismatch
+
+The embedding dimension is locked when the database is first created. If you change `EMBEDDING_DIM` later, you'll get a clear error:
+
+```
+Embedding dimension mismatch: database was created with dim=384,
+but current config has dim=768.
+Either use EMBEDDING_DIM=384 or start with a fresh database.
+```
+
+To switch dimensions, either delete the old database or use a different `CLAUDE_MEMORY_DB` path.
 
 ## Requirements
 
 - Node.js >= 18
-- ~80MB disk for the embedding model (downloaded on first use)
+- ~80MB disk for the embedding model (downloaded on first use, builtin only)
 - ~1MB per 1000 facts stored
+- [Ollama](https://ollama.com) (optional, for `EMBEDDING_PROVIDER=ollama`)
 
 ## License
 

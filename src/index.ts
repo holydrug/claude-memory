@@ -19,7 +19,7 @@ if (command === "init") {
 }
 
 if (command === "version" || command === "--version" || command === "-v") {
-  console.log("semantic-memory-mcp 0.1.0");
+  console.log("semantic-memory-mcp 0.2.0");
   process.exit(0);
 }
 
@@ -32,9 +32,15 @@ Usage:
   semantic-memory-mcp version  Show version
 
 Environment variables:
-  CLAUDE_MEMORY_DIR          Data directory (default: ~/.cache/semantic-memory-mcp)
+  CLAUDE_MEMORY_DIR          Data directory (default: ~/.cache/claude-memory)
   CLAUDE_MEMORY_DB           SQLite database path
   CLAUDE_MEMORY_MODEL_CACHE  Embedding model cache directory
+
+  EMBEDDING_PROVIDER         "builtin" (default) or "ollama"
+  EMBEDDING_DIM              Embedding dimension (default: 384 for builtin, 768 for ollama)
+
+  OLLAMA_URL                 Ollama API endpoint (default: http://localhost:11434)
+  OLLAMA_MODEL               Ollama embedding model (default: nomic-embed-text)
 `);
   process.exit(0);
 }
@@ -42,7 +48,7 @@ Environment variables:
 // MCP Server mode
 const server = new McpServer({
   name: "semantic-memory",
-  version: "0.1.0",
+  version: "0.2.0",
 });
 
 const db = initDb();

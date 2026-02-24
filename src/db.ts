@@ -28,6 +28,11 @@ const SCHEMA_SQL = `
 
   CREATE INDEX IF NOT EXISTS idx_facts_subject ON facts(subject_id);
   CREATE INDEX IF NOT EXISTS idx_facts_object ON facts(object_id);
+
+  CREATE TABLE IF NOT EXISTS meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
 `;
 
 /** Convert Float32Array to Buffer for sqlite-vec binding */
@@ -54,6 +59,25 @@ export function initDb(): Db {
   db.pragma("foreign_keys = ON");
 
   db.exec(SCHEMA_SQL);
+
+  // Validate embedding dimension against stored metadata
+  const storedDim = db
+    .prepare("SELECT value FROM meta WHERE key = 'embedding_dim'")
+    .get() as { value: string } | undefined;
+
+  if (storedDim) {
+    const existing = parseInt(storedDim.value, 10);
+    if (existing !== config.embeddingDim) {
+      throw new Error(
+        `Embedding dimension mismatch: database was created with dim=${existing}, ` +
+        `but current config has dim=${config.embeddingDim}. ` +
+        `Either use EMBEDDING_DIM=${existing} or start with a fresh database.`
+      );
+    }
+  } else {
+    db.prepare("INSERT OR REPLACE INTO meta (key, value) VALUES ('embedding_dim', ?)")
+      .run(String(config.embeddingDim));
+  }
 
   // vec0 virtual tables use rowid (no explicit PK column)
   try {
