@@ -19,7 +19,7 @@ if (command === "init") {
 }
 
 if (command === "version" || command === "--version" || command === "-v") {
-  console.log("semantic-memory-mcp 0.2.0");
+  console.log("semantic-memory-mcp 0.2.1");
   process.exit(0);
 }
 
@@ -48,7 +48,7 @@ Environment variables:
 // MCP Server mode
 const server = new McpServer({
   name: "semantic-memory",
-  version: "0.2.0",
+  version: "0.2.1",
 });
 
 const db = initDb();
