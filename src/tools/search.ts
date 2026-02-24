@@ -1,0 +1,47 @@
+import { z } from "zod";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { Db } from "../db.js";
+import type { EmbedFn } from "../types.js";
+
+export function registerSearchTool(
+  server: McpServer,
+  db: Db,
+  embed: EmbedFn
+): void {
+  server.tool(
+    "memory_search",
+    "Search the knowledge graph semantically. Returns facts matching the query by meaning. Use when user says: вспомни, что помнишь, поищи в памяти, recall, search memory.",
+    {
+      query: z.string().describe("Search query in any language"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .optional()
+        .describe("Max results (default 5)"),
+    },
+    async ({ query, limit }) => {
+      const queryEmb = await embed(query);
+      const results = db.searchFacts(queryEmb, limit ?? 5);
+
+      if (results.length === 0) {
+        return {
+          content: [{ type: "text" as const, text: "No matching facts found." }],
+        };
+      }
+
+      const lines = results.map(
+        (r) =>
+          `[${r.score.toFixed(3)}] [${r.subject}] -[${r.predicate}]-> [${r.object}]\n` +
+          `  Fact: ${r.fact}\n` +
+          `  Context: ${r.context}\n` +
+          `  Source: ${r.source || "n/a"}`
+      );
+
+      return {
+        content: [{ type: "text" as const, text: lines.join("\n\n") }],
+      };
+    }
+  );
+}

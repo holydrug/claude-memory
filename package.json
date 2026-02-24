@@ -1,0 +1,47 @@
+{
+  "name": "claude-memory",
+  "version": "0.1.0",
+  "description": "Semantic memory MCP server for Claude Code. Local knowledge graph with vector search — zero external dependencies.",
+  "type": "module",
+  "bin": {
+    "claude-memory": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.0.0",
+    "@modelcontextprotocol/sdk": "^1.7.0",
+    "better-sqlite3": "^11.0.0",
+    "sqlite-vec": "^0.1.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "memory",
+    "semantic",
+    "knowledge-graph",
+    "sqlite",
+    "embeddings",
+    "claude-code"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/holydrug/claude-memory"
+  }
+}
