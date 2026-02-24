@@ -21,7 +21,7 @@ export async function runInit(): Promise<void> {
   mcpServers["semantic-memory"] = {
     type: "stdio",
     command: "npx",
-    args: ["-y", "claude-memory"],
+    args: ["-y", "semantic-memory-mcp"],
   };
 
   config["mcpServers"] = mcpServers;

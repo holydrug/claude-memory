@@ -1,4 +1,4 @@
-# claude-memory
+# semantic-memory-mcp
 
 Semantic memory MCP server for [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 Local knowledge graph with vector search — **zero external dependencies**.
@@ -7,7 +7,7 @@ No Docker. No Ollama. No API keys. Just `npx` and go.
 
 ## How it works
 
-claude-memory gives Claude Code a persistent knowledge graph stored in a local SQLite database.
+semantic-memory-mcp gives Claude Code a persistent knowledge graph stored in a local SQLite database.
 Facts are stored as Subject-Predicate-Object triples with vector embeddings for semantic search.
 
 ```
@@ -24,10 +24,10 @@ Facts are stored as Subject-Predicate-Object triples with vector embeddings for 
 
 ```bash
 # Install globally (or use npx)
-npm install -g claude-memory
+npm install -g semantic-memory-mcp
 
 # Auto-configure Claude Code
-claude-memory init
+semantic-memory-mcp init
 
 # Restart Claude Code — done!
 ```
@@ -40,7 +40,7 @@ Or add manually to `~/.claude.json`:
     "semantic-memory": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "claude-memory"]
+      "args": ["-y", "semantic-memory-mcp"]
     }
   }
 }

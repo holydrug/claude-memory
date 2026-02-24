@@ -1,10 +1,10 @@
 {
-  "name": "claude-memory",
+  "name": "semantic-memory-mcp",
   "version": "0.1.0",
   "description": "Semantic memory MCP server for Claude Code. Local knowledge graph with vector search — zero external dependencies.",
   "type": "module",
   "bin": {
-    "claude-memory": "./dist/index.js"
+    "semantic-memory-mcp": "dist/index.js"
   },
   "files": [
     "dist"
@@ -42,6 +42,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/holydrug/claude-memory"
+    "url": "git+https://github.com/holydrug/claude-memory.git"
   }
 }

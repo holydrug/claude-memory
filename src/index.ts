@@ -19,20 +19,20 @@ if (command === "init") {
 }
 
 if (command === "version" || command === "--version" || command === "-v") {
-  console.log("claude-memory 0.1.0");
+  console.log("semantic-memory-mcp 0.1.0");
   process.exit(0);
 }
 
 if (command === "help" || command === "--help" || command === "-h") {
-  console.log(`claude-memory — Semantic memory MCP server for Claude Code
+  console.log(`semantic-memory-mcp — Semantic memory MCP server for Claude Code
 
 Usage:
-  claude-memory          Start MCP server (stdio transport)
-  claude-memory init     Add to ~/.claude.json and activate
-  claude-memory version  Show version
+  semantic-memory-mcp          Start MCP server (stdio transport)
+  semantic-memory-mcp init     Add to ~/.claude.json and activate
+  semantic-memory-mcp version  Show version
 
 Environment variables:
-  CLAUDE_MEMORY_DIR          Data directory (default: ~/.cache/claude-memory)
+  CLAUDE_MEMORY_DIR          Data directory (default: ~/.cache/semantic-memory-mcp)
   CLAUDE_MEMORY_DB           SQLite database path
   CLAUDE_MEMORY_MODEL_CACHE  Embedding model cache directory
 `);
