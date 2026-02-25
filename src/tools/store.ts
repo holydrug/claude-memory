@@ -1,15 +1,18 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { StorageBackend, EmbedFn } from "../types.js";
+import type { Config } from "../config.js";
+import { buildDescription } from "../triggers.js";
 
 export function registerStoreTool(
   server: McpServer,
   db: StorageBackend,
-  embed: EmbedFn
+  embed: EmbedFn,
+  config: Config
 ): void {
   server.tool(
     "memory_store",
-    "Store a fact in the semantic knowledge graph. Use when user says: запомни, память, обнови память, сохрани в памяти, remember.",
+    buildDescription("store", config.triggersStore),
     {
       subject: z
         .string()

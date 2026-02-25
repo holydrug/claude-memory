@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { homedir, platform, arch } from "node:os";
 import { execSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
+import { DEFAULT_TRIGGERS, type ToolKey } from "./triggers.js";
 
 function isMacAppleSilicon(): boolean {
   return platform() === "darwin" && arch() === "arm64";
@@ -289,6 +290,43 @@ function waitForNeo4j(maxWaitSec: number): boolean {
   return false;
 }
 
+// ─── Trigger words ──────────────────────────────────────────
+
+const TRIGGER_ENV_KEYS: Record<ToolKey, string> = {
+  store: "MEMORY_TRIGGERS_STORE",
+  search: "MEMORY_TRIGGERS_SEARCH",
+  graph: "MEMORY_TRIGGERS_GRAPH",
+  list: "MEMORY_TRIGGERS_LIST",
+};
+
+const TRIGGER_LABELS: Record<ToolKey, string> = {
+  store: "memory_store",
+  search: "memory_search",
+  graph: "memory_graph",
+  list: "memory_list_entities",
+};
+
+async function configureTriggerWords(
+  rl: ReturnType<typeof createInterface>,
+  envVars: Record<string, string>,
+): Promise<void> {
+  const customize = await ask(rl, "\nCustomize trigger words? [y/N]: ");
+  if (customize.toLowerCase() !== "y") return;
+
+  console.log("\n  Add extra trigger words for each tool (comma-separated).");
+  console.log("  These are ADDED to the defaults, not replacing them.");
+  console.log("  Press Enter to skip a tool.\n");
+
+  for (const key of ["store", "search", "graph", "list"] as ToolKey[]) {
+    const defaults = DEFAULT_TRIGGERS[key];
+    console.log(`  ${TRIGGER_LABELS[key]} defaults: ${defaults}`);
+    const extra = await ask(rl, `  Extra triggers: `);
+    if (extra) {
+      envVars[TRIGGER_ENV_KEYS[key]] = extra;
+    }
+  }
+}
+
 // ─── Init flows ─────────────────────────────────────────────
 
 async function runLightweightInit(
@@ -314,6 +352,8 @@ async function runLightweightInit(
   if (provider === "ollama") {
     await configureOllamaEmbeddings(rl, envVars);
   }
+
+  await configureTriggerWords(rl, envVars);
 
   const serverEntry: Record<string, unknown> = {
     type: "stdio",
@@ -465,23 +505,30 @@ async function runFullInit(
     }
   }
 
+  // Trigger words
+  const triggerEnvVars: Record<string, string> = {};
+  await configureTriggerWords(rl, triggerEnvVars);
+
   // Write to ~/.claude.json
   const mcpServers = (config["mcpServers"] ?? {}) as Record<string, unknown>;
+
+  const envBlock: Record<string, string> = {
+    STORAGE_PROVIDER: "neo4j",
+    NEO4J_URI: "bolt://localhost:7687",
+    NEO4J_USER: "neo4j",
+    NEO4J_PASSWORD: neo4jPassword,
+    EMBEDDING_PROVIDER: "ollama",
+    OLLAMA_URL: "http://localhost:11434",
+    OLLAMA_MODEL: ollamaModel,
+    EMBEDDING_DIM: String(embeddingDim),
+    ...triggerEnvVars,
+  };
 
   mcpServers["semantic-memory"] = {
     type: "stdio",
     command: "npx",
     args: ["-y", "semantic-memory-mcp"],
-    env: {
-      STORAGE_PROVIDER: "neo4j",
-      NEO4J_URI: "bolt://localhost:7687",
-      NEO4J_USER: "neo4j",
-      NEO4J_PASSWORD: neo4jPassword,
-      EMBEDDING_PROVIDER: "ollama",
-      OLLAMA_URL: "http://localhost:11434",
-      OLLAMA_MODEL: ollamaModel,
-      EMBEDDING_DIM: String(embeddingDim),
-    },
+    env: envBlock,
   };
 
   config["mcpServers"] = mcpServers;

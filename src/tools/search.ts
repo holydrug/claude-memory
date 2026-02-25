@@ -1,15 +1,18 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { StorageBackend, EmbedFn } from "../types.js";
+import type { Config } from "../config.js";
+import { buildDescription } from "../triggers.js";
 
 export function registerSearchTool(
   server: McpServer,
   db: StorageBackend,
-  embed: EmbedFn
+  embed: EmbedFn,
+  config: Config
 ): void {
   server.tool(
     "memory_search",
-    "Search the knowledge graph semantically. Returns facts matching the query by meaning. Use when user says: вспомни, что помнишь, поищи в памяти, recall, search memory.",
+    buildDescription("search", config.triggersSearch),
     {
       query: z.string().describe("Search query in any language"),
       limit: z

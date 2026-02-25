@@ -49,6 +49,11 @@ Environment variables:
   NEO4J_URI                  Neo4j bolt URI (default: bolt://localhost:7687)
   NEO4J_USER                 Neo4j username (default: neo4j)
   NEO4J_PASSWORD             Neo4j password (default: memory_pass_2024)
+
+  MEMORY_TRIGGERS_STORE      Extra trigger words for memory_store (comma-separated)
+  MEMORY_TRIGGERS_SEARCH     Extra trigger words for memory_search (comma-separated)
+  MEMORY_TRIGGERS_GRAPH      Extra trigger words for memory_graph (comma-separated)
+  MEMORY_TRIGGERS_LIST       Extra trigger words for memory_list_entities (comma-separated)
 `);
   process.exit(0);
 }
@@ -72,10 +77,10 @@ if (config.storageProvider === "neo4j") {
 
 const embed = await initEmbeddings();
 
-registerStoreTool(server, backend, embed);
-registerSearchTool(server, backend, embed);
-registerGraphTool(server, backend);
-registerListTool(server, backend);
+registerStoreTool(server, backend, embed, config);
+registerSearchTool(server, backend, embed, config);
+registerGraphTool(server, backend, config);
+registerListTool(server, backend, config);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

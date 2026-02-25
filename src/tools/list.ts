@@ -1,11 +1,13 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { StorageBackend } from "../types.js";
+import type { Config } from "../config.js";
+import { buildDescription } from "../triggers.js";
 
-export function registerListTool(server: McpServer, db: StorageBackend): void {
+export function registerListTool(server: McpServer, db: StorageBackend, config: Config): void {
   server.tool(
     "memory_list_entities",
-    "List all entities in the knowledge graph. Optionally filtered by name pattern. Use when user says: что в памяти, покажи всю память, list entities, what's in memory.",
+    buildDescription("list", config.triggersList),
     {
       pattern: z
         .string()

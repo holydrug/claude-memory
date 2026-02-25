@@ -1,11 +1,13 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { StorageBackend } from "../types.js";
+import type { Config } from "../config.js";
+import { buildDescription } from "../triggers.js";
 
-export function registerGraphTool(server: McpServer, db: StorageBackend): void {
+export function registerGraphTool(server: McpServer, db: StorageBackend, config: Config): void {
   server.tool(
     "memory_graph",
-    "Explore the knowledge graph around an entity. Returns connected facts and entities. Use when user says: покажи граф, что связано с, graph, connections.",
+    buildDescription("graph", config.triggersGraph),
     {
       entity: z
         .string()

@@ -14,6 +14,10 @@ export interface Config {
   neo4jUri: string;
   neo4jUser: string;
   neo4jPassword: string;
+  triggersStore?: string;
+  triggersSearch?: string;
+  triggersGraph?: string;
+  triggersList?: string;
 }
 
 const DEFAULT_DIM = {
@@ -52,5 +56,9 @@ export function getConfig(): Config {
     neo4jUri: process.env["NEO4J_URI"] ?? "bolt://localhost:7687",
     neo4jUser: process.env["NEO4J_USER"] ?? "neo4j",
     neo4jPassword: process.env["NEO4J_PASSWORD"] ?? "memory_pass_2024",
+    triggersStore: process.env["MEMORY_TRIGGERS_STORE"],
+    triggersSearch: process.env["MEMORY_TRIGGERS_SEARCH"],
+    triggersGraph: process.env["MEMORY_TRIGGERS_GRAPH"],
+    triggersList: process.env["MEMORY_TRIGGERS_LIST"],
   };
 }
