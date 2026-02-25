@@ -2,12 +2,15 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { initDb } from "./db.js";
+import { getConfig } from "./config.js";
+import { initDb, sqliteBackend } from "./db.js";
+import { initNeo4j } from "./neo4j.js";
 import { initEmbeddings } from "./embeddings.js";
 import { registerStoreTool } from "./tools/store.js";
 import { registerSearchTool } from "./tools/search.js";
 import { registerGraphTool } from "./tools/graph.js";
 import { registerListTool } from "./tools/list.js";
+import type { StorageBackend } from "./types.js";
 
 // CLI subcommands
 const command = process.argv[2];
@@ -19,7 +22,7 @@ if (command === "init") {
 }
 
 if (command === "version" || command === "--version" || command === "-v") {
-  console.log("semantic-memory-mcp 0.2.1");
+  console.log("semantic-memory-mcp 0.3.0");
   process.exit(0);
 }
 
@@ -32,6 +35,7 @@ Usage:
   semantic-memory-mcp version  Show version
 
 Environment variables:
+  STORAGE_PROVIDER           "sqlite" (default) or "neo4j"
   CLAUDE_MEMORY_DIR          Data directory (default: ~/.cache/claude-memory)
   CLAUDE_MEMORY_DB           SQLite database path
   CLAUDE_MEMORY_MODEL_CACHE  Embedding model cache directory
@@ -41,6 +45,10 @@ Environment variables:
 
   OLLAMA_URL                 Ollama API endpoint (default: http://localhost:11434)
   OLLAMA_MODEL               Ollama embedding model (default: nomic-embed-text)
+
+  NEO4J_URI                  Neo4j bolt URI (default: bolt://localhost:7687)
+  NEO4J_USER                 Neo4j username (default: neo4j)
+  NEO4J_PASSWORD             Neo4j password (default: memory_pass_2024)
 `);
   process.exit(0);
 }
@@ -48,27 +56,35 @@ Environment variables:
 // MCP Server mode
 const server = new McpServer({
   name: "semantic-memory",
-  version: "0.2.1",
+  version: "0.3.0",
 });
 
-const db = initDb();
+const config = getConfig();
+
+let backend: StorageBackend;
+if (config.storageProvider === "neo4j") {
+  console.error("[claude-memory] Using Neo4j storage backend");
+  backend = initNeo4j();
+} else {
+  console.error("[claude-memory] Using SQLite storage backend");
+  backend = sqliteBackend(initDb());
+}
+
 const embed = await initEmbeddings();
 
-registerStoreTool(server, db, embed);
-registerSearchTool(server, db, embed);
-registerGraphTool(server, db);
-registerListTool(server, db);
+registerStoreTool(server, backend, embed);
+registerSearchTool(server, backend, embed);
+registerGraphTool(server, backend);
+registerListTool(server, backend);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
 
 // Graceful shutdown
-process.on("SIGINT", () => {
-  db.close();
+const shutdown = async () => {
+  await backend.close();
   process.exit(0);
-});
+};
 
-process.on("SIGTERM", () => {
-  db.close();
-  process.exit(0);
-});
+process.on("SIGINT", () => void shutdown());
+process.on("SIGTERM", () => void shutdown());

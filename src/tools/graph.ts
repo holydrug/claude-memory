@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Db } from "../db.js";
+import type { StorageBackend } from "../types.js";
 
-export function registerGraphTool(server: McpServer, db: Db): void {
+export function registerGraphTool(server: McpServer, db: StorageBackend): void {
   server.tool(
     "memory_graph",
     "Explore the knowledge graph around an entity. Returns connected facts and entities. Use when user says: покажи граф, что связано с, graph, connections.",
@@ -19,7 +19,7 @@ export function registerGraphTool(server: McpServer, db: Db): void {
         .describe("Traversal depth (default 2)"),
     },
     async ({ entity, depth }) => {
-      const result = db.graphTraverse(entity, depth ?? 2);
+      const result = await db.graphTraverse(entity, depth ?? 2);
 
       if (!result) {
         return {

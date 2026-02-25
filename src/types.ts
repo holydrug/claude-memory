@@ -35,3 +35,13 @@ export interface EntityInfo {
   name: string;
   factCount: number;
 }
+
+/** Async storage backend interface — implemented by SQLite and Neo4j */
+export interface StorageBackend {
+  findOrCreateEntity(name: string, embedding: Float32Array): Promise<number>;
+  storeFact(params: StoreFact): Promise<number>;
+  searchFacts(embedding: Float32Array, limit: number): Promise<SearchResult[]>;
+  graphTraverse(entityName: string, depth: number): Promise<GraphResult | null>;
+  listEntities(pattern?: string): Promise<EntityInfo[]>;
+  close(): Promise<void>;
+}

@@ -1,11 +1,10 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Db } from "../db.js";
-import type { EmbedFn } from "../types.js";
+import type { StorageBackend, EmbedFn } from "../types.js";
 
 export function registerStoreTool(
   server: McpServer,
-  db: Db,
+  db: StorageBackend,
   embed: EmbedFn
 ): void {
   server.tool(
@@ -37,10 +36,10 @@ export function registerStoreTool(
         embed(fact),
       ]);
 
-      const subjectId = db.findOrCreateEntity(subject, subjectEmb);
-      const objectId = db.findOrCreateEntity(object, objectEmb);
+      const subjectId = await db.findOrCreateEntity(subject, subjectEmb);
+      const objectId = await db.findOrCreateEntity(object, objectEmb);
 
-      db.storeFact({
+      await db.storeFact({
         subjectId,
         predicate,
         objectId,

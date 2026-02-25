@@ -1,11 +1,10 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Db } from "../db.js";
-import type { EmbedFn } from "../types.js";
+import type { StorageBackend, EmbedFn } from "../types.js";
 
 export function registerSearchTool(
   server: McpServer,
-  db: Db,
+  db: StorageBackend,
   embed: EmbedFn
 ): void {
   server.tool(
@@ -23,7 +22,7 @@ export function registerSearchTool(
     },
     async ({ query, limit }) => {
       const queryEmb = await embed(query);
-      const results = db.searchFacts(queryEmb, limit ?? 5);
+      const results = await db.searchFacts(queryEmb, limit ?? 5);
 
       if (results.length === 0) {
         return {

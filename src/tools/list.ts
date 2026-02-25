@@ -1,8 +1,8 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Db } from "../db.js";
+import type { StorageBackend } from "../types.js";
 
-export function registerListTool(server: McpServer, db: Db): void {
+export function registerListTool(server: McpServer, db: StorageBackend): void {
   server.tool(
     "memory_list_entities",
     "List all entities in the knowledge graph. Optionally filtered by name pattern. Use when user says: что в памяти, покажи всю память, list entities, what's in memory.",
@@ -15,7 +15,7 @@ export function registerListTool(server: McpServer, db: Db): void {
         ),
     },
     async ({ pattern }) => {
-      const entities = db.listEntities(pattern);
+      const entities = await db.listEntities(pattern);
 
       if (entities.length === 0) {
         return {

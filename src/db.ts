@@ -6,6 +6,7 @@ import type {
   SearchResult,
   GraphResult,
   EntityInfo,
+  StorageBackend,
 } from "./types.js";
 
 const SCHEMA_SQL = `
@@ -272,5 +273,17 @@ export function initDb(): Db {
     graphTraverse,
     listEntities,
     close: () => db.close(),
+  };
+}
+
+/** Wraps sync SQLite Db into async StorageBackend */
+export function sqliteBackend(db: Db): StorageBackend {
+  return {
+    findOrCreateEntity: async (name, embedding) => db.findOrCreateEntity(name, embedding),
+    storeFact: async (params) => db.storeFact(params),
+    searchFacts: async (embedding, limit) => db.searchFacts(embedding, limit),
+    graphTraverse: async (entityName, depth) => db.graphTraverse(entityName, depth),
+    listEntities: async (pattern) => db.listEntities(pattern),
+    close: async () => db.close(),
   };
 }
