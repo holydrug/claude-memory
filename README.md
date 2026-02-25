@@ -5,7 +5,7 @@ Persistent memory for [Claude Code](https://docs.anthropic.com/en/docs/claude-co
 ## Quick start
 
 ```bash
-npx semantic-memory-mcp init
+npx semantic-memory-mcp@latest init
 # Restart Claude Code — done!
 ```
 
@@ -24,7 +24,7 @@ There are three ways to connect the MCP server to Claude Code:
 
 ### Global (recommended for personal use)
 
-Added automatically by `npx semantic-memory-mcp init`. Config lives in `~/.claude.json`:
+Added automatically by `npx semantic-memory-mcp@latest init`. Config lives in `~/.claude.json`:
 
 ```json
 {
@@ -32,7 +32,7 @@ Added automatically by `npx semantic-memory-mcp init`. Config lives in `~/.claud
     "semantic-memory": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "semantic-memory-mcp"]
+      "args": ["-y", "semantic-memory-mcp@latest"]
     }
   }
 }
@@ -48,7 +48,7 @@ Create `.mcp.json` in the project root. This file is committed to the repo so ev
     "semantic-memory": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "semantic-memory-mcp"],
+      "args": ["-y", "semantic-memory-mcp@latest"],
       "env": {
         "CLAUDE_MEMORY_DIR": "./.semantic-memory"
       }
@@ -71,7 +71,7 @@ Add a project-scoped override in `~/.claude.json`. This is useful when you want 
         "semantic-memory": {
           "type": "stdio",
           "command": "npx",
-          "args": ["-y", "semantic-memory-mcp"],
+          "args": ["-y", "semantic-memory-mcp@latest"],
           "env": {
             "CLAUDE_MEMORY_DIR": "/absolute/path/to/project/.semantic-memory"
           }
@@ -140,7 +140,7 @@ Example — adding Chinese and Spanish triggers:
     "semantic-memory": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "semantic-memory-mcp"],
+      "args": ["-y", "semantic-memory-mcp@latest"],
       "env": {
         "MEMORY_TRIGGERS_STORE": "记住, recuerda, guardar",
         "MEMORY_TRIGGERS_SEARCH": "搜索记忆, buscar en memoria"
@@ -150,7 +150,7 @@ Example — adding Chinese and Spanish triggers:
 }
 ```
 
-You can also configure triggers interactively during `npx semantic-memory-mcp init`.
+You can also configure triggers interactively during `npx semantic-memory-mcp@latest init`.
 
 ## Requirements
 

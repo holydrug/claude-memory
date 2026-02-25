@@ -358,7 +358,7 @@ async function runLightweightInit(
   const serverEntry: Record<string, unknown> = {
     type: "stdio",
     command: "npx",
-    args: ["-y", "semantic-memory-mcp"],
+    args: ["-y", "semantic-memory-mcp@latest"],
   };
 
   if (Object.keys(envVars).length > 0) {
@@ -527,7 +527,7 @@ async function runFullInit(
   mcpServers["semantic-memory"] = {
     type: "stdio",
     command: "npx",
-    args: ["-y", "semantic-memory-mcp"],
+    args: ["-y", "semantic-memory-mcp@latest"],
     env: envBlock,
   };
 
