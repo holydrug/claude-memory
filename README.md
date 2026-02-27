@@ -18,6 +18,35 @@ The interactive wizard lets you choose between two modes:
 
 **Full mode** generates a `docker-compose.yml` with Neo4j + Ollama, starts containers, pulls the embedding model — all from the wizard. On macOS it installs Ollama natively via Homebrew for Metal GPU acceleration.
 
+## Dual mode: project + global memory
+
+By default all facts go into one global database (`~/.cache/claude-memory/`). With **dual mode** you get two layers:
+
+| Layer | Location | Contains |
+|-------|----------|----------|
+| **Project** | `./.semantic-memory/` | Bugs, workarounds, patterns for the current epic |
+| **Global** | `~/.cache/claude-memory/` | Tech stack, conventions, preferences — shared across projects |
+
+Enable it during init:
+
+```bash
+npx semantic-memory-mcp@latest init
+# → Choose mode (Lightweight / Full)
+# → "Enable per-project memory for this folder?" → y
+```
+
+Facts are auto-classified by predicate: `uses`, `depends_on`, `written_in` → global candidate; `bug_in`, `todo`, `workaround_for` → project. Search and graph queries hit both layers.
+
+### Promote
+
+Review and transfer global candidates from the current project to global memory:
+
+```bash
+npx semantic-memory-mcp promote
+```
+
+Shows a numbered list, you pick which facts to promote (all / none / by number). The `memory_list_entities` tool shows a reminder when candidates are pending.
+
 ## Where to configure
 
 There are three ways to connect the MCP server to Claude Code:
@@ -40,7 +69,7 @@ Added automatically by `npx semantic-memory-mcp@latest init`. Config lives in `~
 
 ### Per-project — shared with team
 
-Create `.mcp.json` in the project root. This file is committed to the repo so every team member gets the same setup:
+Create `.mcp.json` in the project root. Committed to the repo so the team shares the setup:
 
 ```json
 {
@@ -57,23 +86,27 @@ Create `.mcp.json` in the project root. This file is committed to the repo so ev
 }
 ```
 
-Add `.semantic-memory/` to `.gitignore` — it contains the local database and model cache.
+Add `.semantic-memory/` to `.gitignore`.
 
-### Per-project — personal (not shared)
+### Per-project with dual mode
 
-Add a project-scoped override in `~/.claude.json`. This is useful when you want project-specific settings without affecting the repo:
+The init wizard writes this to `~/.claude.json` when you enable per-project memory:
 
 ```json
 {
+  "mcpServers": {
+    "semantic-memory": { "..." : "global fallback" }
+  },
   "projects": {
-    "/absolute/path/to/project": {
+    "/home/user/my-project": {
       "mcpServers": {
         "semantic-memory": {
           "type": "stdio",
           "command": "npx",
           "args": ["-y", "semantic-memory-mcp@latest"],
           "env": {
-            "CLAUDE_MEMORY_DIR": "/absolute/path/to/project/.semantic-memory"
+            "CLAUDE_MEMORY_DIR": "./.semantic-memory",
+            "CLAUDE_MEMORY_GLOBAL_DIR": "/home/user/.cache/claude-memory"
           }
         }
       }
@@ -123,6 +156,9 @@ Claude Code gets 4 tools to remember things across sessions:
 | `NEO4J_URI` | `bolt://localhost:7687` | Neo4j bolt URI |
 | `NEO4J_USER` | `neo4j` | Neo4j username |
 | `NEO4J_PASSWORD` | `memory_pass_2024` | Neo4j password |
+| `CLAUDE_MEMORY_GLOBAL_DIR` | — | Global memory directory (enables dual mode) |
+| `CLAUDE_MEMORY_GLOBAL_DB` | `<global-dir>/memory.db` | Global SQLite database path |
+| `GLOBAL_STORAGE_PROVIDER` | `sqlite` | Global backend: `sqlite` or `neo4j` |
 | `MEMORY_TRIGGERS_STORE` | — | Extra trigger words for `memory_store` (comma-separated) |
 | `MEMORY_TRIGGERS_SEARCH` | — | Extra trigger words for `memory_search` (comma-separated) |
 | `MEMORY_TRIGGERS_GRAPH` | — | Extra trigger words for `memory_graph` (comma-separated) |
