@@ -5,6 +5,10 @@ import { execSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { DEFAULT_TRIGGERS, type ToolKey } from "./triggers.js";
 
+interface InitResult {
+  envVars: Record<string, string>;
+}
+
 function isMacAppleSilicon(): boolean {
   return platform() === "darwin" && arch() === "arm64";
 }
@@ -331,9 +335,7 @@ async function configureTriggerWords(
 
 async function runLightweightInit(
   rl: ReturnType<typeof createInterface>,
-  config: Record<string, unknown>,
-): Promise<void> {
-  const mcpServers = (config["mcpServers"] ?? {}) as Record<string, unknown>;
+): Promise<InitResult> {
   const envVars: Record<string, string> = {};
 
   // Embedding provider selection
@@ -355,24 +357,12 @@ async function runLightweightInit(
 
   await configureTriggerWords(rl, envVars);
 
-  const serverEntry: Record<string, unknown> = {
-    type: "stdio",
-    command: "npx",
-    args: ["-y", "semantic-memory-mcp@latest"],
-  };
-
-  if (Object.keys(envVars).length > 0) {
-    serverEntry["env"] = envVars;
-  }
-
-  mcpServers["semantic-memory"] = serverEntry;
-  config["mcpServers"] = mcpServers;
+  return { envVars };
 }
 
 async function runFullInit(
   rl: ReturnType<typeof createInterface>,
-  config: Record<string, unknown>,
-): Promise<void> {
+): Promise<InitResult> {
   // Check Docker + Docker Compose
   if (!isDockerAvailable()) {
     console.error("\n  Docker is not available. Install Docker first: https://docs.docker.com/get-docker/");
@@ -509,10 +499,7 @@ async function runFullInit(
   const triggerEnvVars: Record<string, string> = {};
   await configureTriggerWords(rl, triggerEnvVars);
 
-  // Write to ~/.claude.json
-  const mcpServers = (config["mcpServers"] ?? {}) as Record<string, unknown>;
-
-  const envBlock: Record<string, string> = {
+  const envVars: Record<string, string> = {
     STORAGE_PROVIDER: "neo4j",
     NEO4J_URI: "bolt://localhost:7687",
     NEO4J_USER: "neo4j",
@@ -524,14 +511,7 @@ async function runFullInit(
     ...triggerEnvVars,
   };
 
-  mcpServers["semantic-memory"] = {
-    type: "stdio",
-    command: "npx",
-    args: ["-y", "semantic-memory-mcp@latest"],
-    env: envBlock,
-  };
-
-  config["mcpServers"] = mcpServers;
+  return { envVars };
 }
 
 async function configureOllamaEmbeddings(
@@ -626,10 +606,73 @@ export async function runInit(): Promise<void> {
       ],
     );
 
+    let result: InitResult;
     if (modeIdx === 0) {
-      await runLightweightInit(rl, config);
+      result = await runLightweightInit(rl);
     } else {
-      await runFullInit(rl, config);
+      result = await runFullInit(rl);
+    }
+
+    // Step: Per-project memory
+    const perProject = await ask(rl, "\nEnable per-project memory for this folder? [y/N]: ");
+    const enablePerProject = perProject.toLowerCase() === "y";
+
+    // Build server entry
+    const serverEntry: Record<string, unknown> = {
+      type: "stdio",
+      command: "npx",
+      args: ["-y", "semantic-memory-mcp@latest"],
+    };
+
+    // Ensure global mcpServers entry always exists
+    const mcpServers = (config["mcpServers"] ?? {}) as Record<string, unknown>;
+    if (!mcpServers["semantic-memory"]) {
+      const globalEntry: Record<string, unknown> = { ...serverEntry };
+      if (Object.keys(result.envVars).length > 0) {
+        globalEntry["env"] = { ...result.envVars };
+      }
+      mcpServers["semantic-memory"] = globalEntry;
+    }
+    config["mcpServers"] = mcpServers;
+
+    if (enablePerProject) {
+      const cwd = process.cwd();
+      const globalMemDir = join(homedir(), ".cache", "claude-memory");
+
+      // Build per-project env with dual mode vars
+      const projectEnv: Record<string, string> = {
+        ...result.envVars,
+        CLAUDE_MEMORY_DIR: "./.semantic-memory",
+        CLAUDE_MEMORY_GLOBAL_DIR: globalMemDir,
+      };
+
+      const projectServerEntry: Record<string, unknown> = {
+        type: "stdio",
+        command: "npx",
+        args: ["-y", "semantic-memory-mcp@latest"],
+        env: projectEnv,
+      };
+
+      // Create projects section
+      const projects = (config["projects"] ?? {}) as Record<string, unknown>;
+      const projectConfig = (projects[cwd] ?? {}) as Record<string, unknown>;
+      const projectMcpServers = (projectConfig["mcpServers"] ?? {}) as Record<string, unknown>;
+      projectMcpServers["semantic-memory"] = projectServerEntry;
+      projectConfig["mcpServers"] = projectMcpServers;
+      projects[cwd] = projectConfig;
+      config["projects"] = projects;
+
+      console.log(`\n  Project memory: ./.semantic-memory/`);
+      console.log(`  Global memory: ${globalMemDir}/`);
+      console.log("  Run 'npx semantic-memory-mcp promote' to review and promote facts to global memory.");
+    } else {
+      // Single mode — update global entry with env vars
+      const globalEntry: Record<string, unknown> = { ...serverEntry };
+      if (Object.keys(result.envVars).length > 0) {
+        globalEntry["env"] = result.envVars;
+      }
+      mcpServers["semantic-memory"] = globalEntry;
+      config["mcpServers"] = mcpServers;
     }
 
     // Save config

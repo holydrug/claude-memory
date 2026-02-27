@@ -5,6 +5,7 @@ import type {
   SearchResult,
   GraphResult,
   EntityInfo,
+  CandidateFact,
   StorageBackend,
 } from "./types.js";
 
@@ -78,6 +79,7 @@ export function initNeo4j(): StorageBackend {
            content: $content,
            context: $context,
            source: $source,
+           scope_candidate: $scopeCandidate,
            embedding: $embedding,
            created_at: datetime()
          })
@@ -91,6 +93,7 @@ export function initNeo4j(): StorageBackend {
           content: params.content,
           context: params.context,
           source: params.source,
+          scopeCandidate: params.scopeCandidate ?? null,
           embedding: Array.from(params.embedding),
         },
       );
@@ -204,6 +207,40 @@ export function initNeo4j(): StorageBackend {
     });
   }
 
+  async function getCandidateFacts(scope: "global" | "project"): Promise<CandidateFact[]> {
+    return withSession(async (session) => {
+      const result = await session.run(
+        `MATCH (subj:Entity)-[:SUBJECT_OF]->(f:Fact)-[:OBJECT_IS]->(obj:Entity)
+         WHERE f.scope_candidate = $scope
+         RETURN id(f) AS factId, subj.name AS subject, f.predicate AS predicate,
+                obj.name AS object, f.content AS content, f.context AS context,
+                f.source AS source, f.scope_candidate AS scopeCandidate
+         ORDER BY f.created_at DESC`,
+        { scope },
+      );
+      return result.records.map((r) => ({
+        factId: r.get("factId").toNumber(),
+        subject: r.get("subject") as string,
+        predicate: r.get("predicate") as string,
+        object: r.get("object") as string,
+        content: r.get("content") as string,
+        context: r.get("context") as string,
+        source: (r.get("source") as string) || "",
+        scopeCandidate: r.get("scopeCandidate") as "global" | "project",
+      }));
+    });
+  }
+
+  async function updateFactScope(factId: number, scope: "global" | "project" | null): Promise<void> {
+    await withSession(async (session) => {
+      await session.run(
+        `MATCH (f:Fact) WHERE id(f) = $factId
+         SET f.scope_candidate = $scope`,
+        { factId: neo4j.int(factId), scope },
+      );
+    });
+  }
+
   async function close(): Promise<void> {
     await driver.close();
   }
@@ -214,6 +251,8 @@ export function initNeo4j(): StorageBackend {
     searchFacts,
     graphTraverse,
     listEntities,
+    getCandidateFacts,
+    updateFactScope,
     close,
   };
 }

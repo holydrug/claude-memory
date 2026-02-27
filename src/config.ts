@@ -18,6 +18,10 @@ export interface Config {
   triggersSearch?: string;
   triggersGraph?: string;
   triggersList?: string;
+  dualMode: boolean;
+  globalDir: string;
+  globalDbPath: string;
+  globalStorageProvider: "sqlite" | "neo4j";
 }
 
 const DEFAULT_DIM = {
@@ -44,6 +48,15 @@ export function getConfig(): Config {
   const dimEnv = process.env["EMBEDDING_DIM"];
   const embeddingDim = dimEnv ? parseInt(dimEnv, 10) : DEFAULT_DIM[provider];
 
+  const dualMode = !!process.env["CLAUDE_MEMORY_GLOBAL_DIR"];
+  const globalDir = process.env["CLAUDE_MEMORY_GLOBAL_DIR"] ?? join(homedir(), ".cache", "claude-memory");
+
+  if (dualMode) {
+    mkdirSync(globalDir, { recursive: true });
+  }
+
+  const globalStorageProvider = (process.env["GLOBAL_STORAGE_PROVIDER"] ?? "sqlite") as Config["globalStorageProvider"];
+
   return {
     storageProvider,
     dbPath: process.env["CLAUDE_MEMORY_DB"] ?? join(dataDir, "memory.db"),
@@ -60,5 +73,9 @@ export function getConfig(): Config {
     triggersSearch: process.env["MEMORY_TRIGGERS_SEARCH"],
     triggersGraph: process.env["MEMORY_TRIGGERS_GRAPH"],
     triggersList: process.env["MEMORY_TRIGGERS_LIST"],
+    dualMode,
+    globalDir,
+    globalDbPath: process.env["CLAUDE_MEMORY_GLOBAL_DB"] ?? join(globalDir, "memory.db"),
+    globalStorageProvider,
   };
 }

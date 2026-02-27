@@ -8,6 +8,7 @@ export interface StoreFact {
   context: string;
   source: string;
   embedding: Float32Array;
+  scopeCandidate?: "global" | "project" | null;
 }
 
 export interface SearchResult {
@@ -18,6 +19,7 @@ export interface SearchResult {
   context: string;
   source: string;
   score: number;
+  sourceLayer?: "project" | "global";
 }
 
 export interface GraphResult {
@@ -36,6 +38,17 @@ export interface EntityInfo {
   factCount: number;
 }
 
+export interface CandidateFact {
+  factId: number;
+  subject: string;
+  predicate: string;
+  object: string;
+  content: string;
+  context: string;
+  source: string;
+  scopeCandidate: "global" | "project";
+}
+
 /** Async storage backend interface — implemented by SQLite and Neo4j */
 export interface StorageBackend {
   findOrCreateEntity(name: string, embedding: Float32Array): Promise<number>;
@@ -44,4 +57,6 @@ export interface StorageBackend {
   graphTraverse(entityName: string, depth: number): Promise<GraphResult | null>;
   listEntities(pattern?: string): Promise<EntityInfo[]>;
   close(): Promise<void>;
+  getCandidateFacts?(scope: "global" | "project"): Promise<CandidateFact[]>;
+  updateFactScope?(factId: number, scope: "global" | "project" | null): Promise<void>;
 }

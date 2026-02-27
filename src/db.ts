@@ -6,6 +6,7 @@ import type {
   SearchResult,
   GraphResult,
   EntityInfo,
+  CandidateFact,
   StorageBackend,
 } from "./types.js";
 
@@ -47,12 +48,14 @@ export interface Db {
   searchFacts(embedding: Float32Array, limit: number): SearchResult[];
   graphTraverse(entityName: string, depth: number): GraphResult | null;
   listEntities(pattern?: string): EntityInfo[];
+  getCandidateFacts(scope: "global" | "project"): CandidateFact[];
+  updateFactScope(factId: number, scope: "global" | "project" | null): void;
   close(): void;
 }
 
-export function initDb(): Db {
+export function initDb(dbPathOverride?: string): Db {
   const config = getConfig();
-  const db = new Database(config.dbPath);
+  const db = new Database(dbPathOverride ?? config.dbPath);
 
   sqliteVec.load(db);
 
@@ -60,6 +63,13 @@ export function initDb(): Db {
   db.pragma("foreign_keys = ON");
 
   db.exec(SCHEMA_SQL);
+
+  // Migration: add scope_candidate column if missing
+  try {
+    db.exec("ALTER TABLE facts ADD COLUMN scope_candidate TEXT DEFAULT NULL");
+  } catch {
+    // column already exists
+  }
 
   // Validate embedding dimension against stored metadata
   const storedDim = db
@@ -115,8 +125,8 @@ export function initDb(): Db {
     "INSERT INTO entity_embeddings (rowid, embedding) VALUES (?, ?)"
   );
   const insertFact = db.prepare(
-    `INSERT INTO facts (subject_id, predicate, object_id, content, context, source)
-     VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT INTO facts (subject_id, predicate, object_id, content, context, source, scope_candidate)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
   );
   const insertFactEmbedding = db.prepare(
     "INSERT INTO fact_embeddings (rowid, embedding) VALUES (?, ?)"
@@ -181,7 +191,8 @@ export function initDb(): Db {
       params.objectId,
       params.content,
       params.context,
-      params.source
+      params.source,
+      params.scopeCandidate ?? null
     );
     const factId = Number(result.lastInsertRowid);
     insertFactEmbedding.run(BigInt(factId), vecBuf(params.embedding));
@@ -266,12 +277,44 @@ export function initDb(): Db {
     return rows.map((r) => ({ name: r.name, factCount: r.fact_count }));
   }
 
+  // Candidate facts queries
+  const selectCandidates = db.prepare(`
+    SELECT
+      f.id AS factId,
+      e_subj.name AS subject,
+      f.predicate,
+      e_obj.name AS object,
+      f.content,
+      f.context,
+      f.source,
+      f.scope_candidate AS scopeCandidate
+    FROM facts f
+    JOIN entities e_subj ON e_subj.id = f.subject_id
+    JOIN entities e_obj ON e_obj.id = f.object_id
+    WHERE f.scope_candidate = ?
+    ORDER BY f.created_at DESC
+  `);
+
+  const updateScope = db.prepare(
+    "UPDATE facts SET scope_candidate = ? WHERE id = ?"
+  );
+
+  function getCandidateFacts(scope: "global" | "project"): CandidateFact[] {
+    return selectCandidates.all(scope) as CandidateFact[];
+  }
+
+  function updateFactScope(factId: number, scope: "global" | "project" | null): void {
+    updateScope.run(scope, factId);
+  }
+
   return {
     findOrCreateEntity,
     storeFact,
     searchFacts,
     graphTraverse,
     listEntities,
+    getCandidateFacts,
+    updateFactScope,
     close: () => db.close(),
   };
 }
@@ -284,6 +327,8 @@ export function sqliteBackend(db: Db): StorageBackend {
     searchFacts: async (embedding, limit) => db.searchFacts(embedding, limit),
     graphTraverse: async (entityName, depth) => db.graphTraverse(entityName, depth),
     listEntities: async (pattern) => db.listEntities(pattern),
+    getCandidateFacts: async (scope) => db.getCandidateFacts(scope),
+    updateFactScope: async (factId, scope) => db.updateFactScope(factId, scope),
     close: async () => db.close(),
   };
 }
